@@ -98,3 +98,53 @@ exports.getOneSauce = (req, res, next) => {
    .catch(error => res.status(404).json({error}));
 };
 
+
+// Ajout d'un pouce +1 //
+
+exports.likeDislikeSauce = (req, res, next) => {
+
+    let likeStatus = req.body.like;
+
+    if (likeStatus === 1)
+    Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+        if (sauce.usersDisliked.includes(req.body.userId) || sauce.usersLiked.includes(req.body.userId)) {
+            res.status(400).json({message: 'Opération non autorisée'});
+        }else{
+            Sauce.updateOne({_id:req.params.id},{$inc:{likes: +1}, $push: {usersLiked: req.body.userId}})
+            .then(() => res.status(201).json({message: 'Like ajouté'}))
+            .catch(error => res.status(400).json({error}));
+        }
+    });
+
+    if (likeStatus === -1)
+    Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+        if (sauce.usersDisliked.includes(req.body.userId) ||sauce.usersLiked.includes(req.body.userId)) {
+            res.status(400).json({message: 'Opération non autorisée'});
+        }else{
+            Sauce.updateOne({_id:req.params.id},{$inc:{dislikes: +1}, $push: {usersDisliked: req.body.userId}})
+            .then(() => res.status(201).json({message: 'Like ajouté'}))
+            .catch(error => res.status(400).json({error}));
+        }
+    });
+
+    if (likeStatus === 0)
+    Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+        if (sauce.usersLiked.includes(req.body.userId)) {
+            Sauce.updateOne({_id:req.params.id},{$inc:{likes: -1}, $pull: {usersLiked: req.body.userId}})
+            .then(() => res.status(201).json({message: 'Like retiré'}))
+            .catch(error => res.status(400).json({error}));
+        }
+
+        if (sauce.usersDisliked.includes(req.body.userId)) {
+            Sauce.updateOne({_id:req.params.id},{$inc:{dislikes: -1}, $pull: {usersDisliked: req.body.userId}})
+            .then(() => res.status(201).json({message: 'Dislike Retiré'}))
+            .catch(error => res.status(400).json({error}));
+        }
+    });
+
+
+
+};
