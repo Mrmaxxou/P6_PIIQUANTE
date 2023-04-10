@@ -9,7 +9,7 @@ exports.getAllSauce = (req, res, next) => {
   .catch(error => res.status(400).json({error}));
 };
 
-
+// Ajouter une nouvelle sauce //
 exports.createSauce = (req, res, next) => {
     const sauceObject = JSON.parse(req.body.sauce); 
     delete sauceObject._id;
@@ -31,25 +31,36 @@ exports.createSauce = (req, res, next) => {
     
 };
 
+// Modifier une sauce uniquement si vous êtes le créateur de celle ci //
 exports.modifySauce = (req, res, next) => {
-    const sauceObject = req.file ?{
-        ...JSON.parse(req.body.sauce),
-        imageURL: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
-    } : { ...req.body};
-    delete sauceObject._userId;
     Sauce.findOne({ _id: req.params.id })
     .then((sauce) => {
         if (sauce.userId != req.auth.userId) {
-            res.status(401).json({ error: 'Non autorisé' });
-        }else{
-            Sauce.updateOne({ _id: req.params.id }, {...sauceObject, _id: req.params.id})
-            .then(() => res.status(200).json({ message: 'Objet modifié'}))
-            .catch(error => res.status(400).json({ error }));
+            return res.status(401).json({ error: 'Non autorisé' });
         }
+        const sauceObject = JSON.parse(req.body.sauce);
+        let newImage = false;
+        if (req.file) {
+            // Si une nouvelle photo a été ajoutée, supprimer l'ancienne photo
+            fs.unlink(`images/${sauce.imageUrl.split('/images/')[1]}`, (err) => {
+                if (err) console.log(err);
+            });
+            sauceObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
+            newImage = true;
+        }
+        Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id })
+        .then(() => {
+            if (newImage) {
+                return res.status(201).json({ message: 'Sauce modifiée et ancienne image supprimée' });
+            }
+            res.status(200).json({ message: 'Sauce modifiée' });
+        })
+        .catch(error => res.status(400).json({ error }));
     })
-    .catch(error => res.status(400).json({error}));
+    .catch(error => res.status(500).json({ error }));
 };
 
+// Supprimer une sauce uniquement si vous êtes le créateur de celle ci //
 exports.deleteSauce = (req, res, next) => {
     Sauce.findOne({ _id: req.params.id})
         .then(sauce => {
