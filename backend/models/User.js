@@ -13,5 +13,7 @@ const userSchema = mongoose.Schema({
 // Utilisation du plugin uniqueValidator pour validité que l'email est bien unique
 userSchema.plugin(uniqueValidator);
 
+
+
 // Exportation du modèle utilisateur
 module.exports = mongoose.model('User', userSchema);
